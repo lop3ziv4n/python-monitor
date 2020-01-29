@@ -6,11 +6,15 @@ import psutil as ps
 def shutdown(pid, **kwargs):
     if ps.pid_exists(pid) and pid != os.getpid():
         process = ps.Process(pid)
+        exe = process.exe()
+        # check cpu and memory uss
         if (0.0 < kwargs["cpu"] <= process.cpu_percent(interval=None)) or (
                 0 < kwargs["memory"] <= process.memory_full_info().uss):
             process.kill()
             process.wait()
-            return process.exe()
+            return True, exe
+        else:
+            return False, exe
 
 
 def startup(shell):
@@ -42,6 +46,8 @@ if __name__ == "__main__":
 
     if process_name is not None:
         for p in find_process(process_name):
-            process_exe = shutdown(p['pid'], cpu=cpu, memory=memory)
-            if process_exe is not None:
+            # analyze the shutdown of the process
+            dead, process_exe = shutdown(p['pid'], cpu=cpu, memory=memory)
+            if dead:
+                # the startup of the process
                 startup(process_exe)
